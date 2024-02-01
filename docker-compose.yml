@@ -1,0 +1,56 @@
+version: "3.8"
+name: "holiday"
+
+volumes:
+  storage-mysql:
+    driver: local
+  storage-service:
+    driver: local
+
+networks:
+  default:
+    driver: "bridge"
+
+services:
+  mysql:
+    image: "mysql:5"
+    restart: unless-stopped
+    volumes:
+      - storage-mysql:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT}
+      - MYSQL_DATABASE=${MYSQL_DBNAME}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASS}
+    ports:
+      - "127.0.0.1:3306:3306"
+
+  service:
+    build:
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    volumes:
+      - ${API_PATH}:/var/www/html
+      - storage-service:/var/www/html/storage
+      - ./nginx.conf:/etc/nginx/templates/nginx.conf.template
+      - /var/www/html/node_modules
+      - /var/www/html/vendor
+    environment:
+      - NGINX_ENVSUBST_OUTPUT_DIR=/etc/nginx
+      - APP_URL=${APP_URL}
+      - API_URL=${API_URL}
+      - APP_NAME=${APP_NAME}
+      - APP_ENV=${APP_ENV}
+      - APP_KEY=${APP_KEY}
+      - APP_DEBUG=${APP_DEBUG}
+      - DB_HOST=mysql
+      - DB_DATABASE=${MYSQL_DBNAME}
+      - DB_USERNAME=${MYSQL_USER}
+      - DB_PASSWORD=${MYSQL_PASS}
+      - API_DOMAIN=${API_DOMAIN}
+      - PANEL_DOMAIN=${PANEL_DOMAIN}
+    working_dir: /var/www/html
+    depends_on:
+      - mysql
+    ports:
+          - "80:80"
